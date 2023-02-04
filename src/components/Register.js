@@ -1,14 +1,19 @@
-import React, { useState } from "react";
-import Header from "./Header";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import InfoTooltip from "./InfoTooltip";
-import { register } from "../utils/authApi";
 
 function Register(props) {
     const [creds, setCredentials] = useState({
         email: '',
         password: ''
     });
+
+    useEffect(() => {
+        props.onChangeHeader({
+            link: "/sign-in",
+            name: "Войти"
+        });
+    }, [])
 
     const [isStatusSuccess, changeStatus] = useState(true);
     const navigate = useNavigate();
@@ -30,12 +35,12 @@ function Register(props) {
     function handleSubmit(e) {
         e.preventDefault();
         const {email, password} = creds;
-        register(email, password)
+        props.onRegister(email, password)
         .then((res) => {
             handleStatusChange(res);
             setCredentials({username: '', password: ''});
         })
-            .finally(props.onTooltipOpen())
+            .finally(() => props.onTooltipOpen())
     }
 
     function onTooltipClose() {
@@ -49,7 +54,6 @@ function Register(props) {
 
     return (
         <>
-            <Header link="/sign-in" linkName="Войти" />
             <main className="auth-page">
                 <div className="auth-page__form-container">
                     <h2 className="auth-page__title">Регистрация</h2>

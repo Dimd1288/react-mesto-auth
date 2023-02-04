@@ -1,7 +1,5 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useState } from "react";
-import { authorize } from "../utils/authApi";
-import Header from "./Header";
 import { useNavigate } from "react-router-dom";
 
 function Login(props) {
@@ -9,6 +7,13 @@ function Login(props) {
         email: '',
         password: ''
     });
+
+    useEffect(() => {
+        props.onChangeHeader({
+            link: "/sign-up",
+            name: "Регистрация"
+        });
+    }, [])
 
     const navigate = useNavigate();
 
@@ -25,8 +30,9 @@ function Login(props) {
         e.preventDefault();
         const {email, password} = creds;
 
-        authorize(email, password).then((data) => {
+        props.onAuthorize(email, password).then((data) => {
             if (data.token){
+              localStorage.setItem('jwt', data.token);
               setCredentials({username: '', password: ''});
               props.onLogIn();  
               navigate('/', {replace: true});
@@ -37,7 +43,6 @@ function Login(props) {
 
     return (
         <>
-            <Header link="/sign-up" linkName="Зарегистрироваться"/>
             <main className="auth-page">
                 <div className="auth-page__form-container">
                     <h2 className="auth-page__title">Вход</h2>

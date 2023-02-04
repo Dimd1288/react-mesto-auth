@@ -7,8 +7,10 @@ function Header(props) {
     function logOut(e) {
         if(props.link === "") {
             e.preventDefault();
+            props.onLogIn(false);
             navigate('/sign-in', {replace: true});
             localStorage.removeItem('jwt');
+
         }
     }
 

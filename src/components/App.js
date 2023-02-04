@@ -13,7 +13,7 @@ import DeletePlacePopup from "./DeletePlacePopup";
 import Login from "./Login";
 import Register from "./Register";
 import ProtectedRouteElement from "./ProtectedRoute";
-import { getContent } from "../utils/authApi";
+import { authorize, getContent, register } from "../utils/authApi";
 
 function App() {
     const [isEditAvatarPopupOpen, setEditAvatarPopupOpen] = useState(false);
@@ -21,12 +21,16 @@ function App() {
     const [isAddPlacePopupOpen, setAddPlacePopupOpen] = useState(false);
     const [isDeletePlacePopupOpen, setDeletePlacePopupOpen] = useState(false);
     const [selectedCard, setSelectedCard] = useState({ isOpened: false });
-    const [currentUser, setCurrentUser] = useState('');
+    const [currentUser, setCurrentUser] = useState({});
     const [cards, setCards] = useState([]);
-    const [deletingCard, setDeletingCard] = useState('');
+    const [deletingCard, setDeletingCard] = useState({});
     const [isLoggedIn, setLoggedIn] = useState(false);
     const [isTooltipOpen, setTooltipOpen] = useState(false);
-    const [email, setEmail] = useState();
+    const [email, setEmail] = useState('');
+    const [header, setHeader] = useState({
+        link: "/sign-up",
+        name: "Регистрация"
+    });
     const navigate = useNavigate();
 
 
@@ -35,13 +39,7 @@ function App() {
             .then(res => setCurrentUser(res))
             .catch(err => console.log(`От сервера вернулась ошибка ${err}`));
         api.getInitialCards().then(res => {
-            setCards(res.map(item => ({
-                _id: item._id,
-                name: item.name,
-                link: item.link,
-                likes: item.likes,
-                owner: item.owner
-            })));
+            setCards(res);
         });
         checkToken();
     }, [isLoggedIn]);
@@ -50,12 +48,16 @@ function App() {
         if (localStorage.getItem('jwt')) {
             const jwt = localStorage.getItem('jwt');
             getContent(jwt).then((res) => {
-                if (res){
-                  setEmail(res.data.email);  
-                  setLoggedIn(true);
-                  navigate("/", {replace: true});
+                if (res) {
+                    setEmail(res.data.email);
+                    setHeader({
+                        link:"",
+                        name:"Выйти"
+                    })
+                    setLoggedIn(true);
+                    navigate("/", { replace: true });
                 }
-              });
+            });
         }
     }
 
@@ -143,17 +145,24 @@ function App() {
         setSelectedCard({ isOpened: false });
     }
 
+    function handleRegisterUser(email, password) {
+        return register(email, password);
+    }
+
+    function handleAuthorizeUser(email, password) {
+        return authorize(email, password);
+    }
+
     return (
         <CurrentUserContext.Provider value={currentUser}>
             <div className="root">
                 <div className="page">
+                <Header link={header.link} email={email} linkName={header.name} onLogIn={setLoggedIn} loggedIn={isLoggedIn} />
                     <Routes>
-                        <Route path="/sign-up" element={<Register onLogIn={handleUserLogIn} onTooltipOpen={handleTooltipOpen} onTooltipClose={closeAllPopups} isTooltipOpen={isTooltipOpen} />} />
-                        <Route path="/sign-in" element={<Login onLogIn={handleUserLogIn} />} />
+                        <Route path="/sign-up" element={<Register onRegister={handleRegisterUser} onChangeHeader={setHeader} onLogIn={handleUserLogIn} onTooltipOpen={handleTooltipOpen} onTooltipClose={closeAllPopups} isTooltipOpen={isTooltipOpen} />} />
+                        <Route path="/sign-in" element={<Login onAuthorize={handleAuthorizeUser} onChangeHeader={setHeader} onLogIn={handleUserLogIn} />} />
                         <Route path="/" element={
                             <ProtectedRouteElement loggedIn={isLoggedIn}>
-                                <>
-                                    <Header link="" email={email} linkName="Выход" loggedIn={isLoggedIn} />
                                     <Main
                                         cards={cards}
                                         onEditAvatar={handleEditAvatarClick}
@@ -163,16 +172,16 @@ function App() {
                                         onCardLike={handleCardLike}
                                         onBasketClick={handleDeletePlaceClick}
                                     />
-                                    <Footer />
-                                    <EditProfilePopup isOpen={isEditProfilePopupOpen} onClose={closeAllPopups} onUpdateUser={handleUpdateUser} />
-                                    <AddPlacePopup isOpen={isAddPlacePopupOpen} onClose={closeAllPopups} onAddPlace={handleAddPlaceSubmit} />
-                                    <ImagePopup card={selectedCard} onClose={closeAllPopups} />
-                                    <DeletePlacePopup isOpen={isDeletePlacePopupOpen} onClose={closeAllPopups} card={deletingCard} onCardDelete={handleCardDelete} />
-                                    <EditAvatarPopup isOpen={isEditAvatarPopupOpen} onClose={closeAllPopups} onUpdateAvatar={handleUpdateAvatar} />
-                                </>
                             </ProtectedRouteElement>}
                         />
                     </Routes>
+                    <Footer />
+                    <EditProfilePopup isOpen={isEditProfilePopupOpen} onClose={closeAllPopups} onUpdateUser={handleUpdateUser} />
+                    <AddPlacePopup isOpen={isAddPlacePopupOpen} onClose={closeAllPopups} onAddPlace={handleAddPlaceSubmit} />
+                    <ImagePopup card={selectedCard} onClose={closeAllPopups} />
+                    <DeletePlacePopup isOpen={isDeletePlacePopupOpen} onClose={closeAllPopups} card={deletingCard} onCardDelete={handleCardDelete} />
+                    <EditAvatarPopup isOpen={isEditAvatarPopupOpen} onClose={closeAllPopups} onUpdateAvatar={handleUpdateAvatar} />
+
                 </div>
             </div>
 
