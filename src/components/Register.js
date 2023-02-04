@@ -1,13 +1,22 @@
-import React from "react";
-import { useState } from "react";
+import React, { useState } from "react";
 import Header from "./Header";
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom';
+import InfoTooltip from "./InfoTooltip";
+import { register } from "../utils/authApi";
 
-function Register() {
+function Register(props) {
     const [creds, setCredentials] = useState({
         email: '',
         password: ''
     });
+
+    const [isStatusSuccess, changeStatus] = useState(true);
+    const navigate = useNavigate();
+
+    function handleStatusChange(res) {
+        if (!res) {
+            changeStatus(false)} else changeStatus(true);
+    }
 
     function handleChange(e) {
         const { name, value } = e.target;
@@ -20,6 +29,22 @@ function Register() {
 
     function handleSubmit(e) {
         e.preventDefault();
+        const {email, password} = creds;
+        register(email, password)
+        .then((res) => {
+            handleStatusChange(res);
+            setCredentials({username: '', password: ''});
+        })
+            .finally(props.onTooltipOpen())
+    }
+
+    function onTooltipClose() {
+        if (isStatusSuccess) {
+            navigate('/sign-in', {replace: true});
+            props.onTooltipClose();
+        } else {
+            props.onTooltipClose();
+        }
     }
 
     return (
@@ -28,14 +53,15 @@ function Register() {
             <main className="auth-page">
                 <div className="auth-page__form-container">
                     <h2 className="auth-page__title">Регистрация</h2>
-                    <form className="auth-page__form">
+                    <form className="auth-page__form" onSubmit={handleSubmit}>
                         <input name="email" className="auth-page__input" placeholder="Email" onChange={handleChange} value={creds.email || ''} id="email-input" />
                         <input name="password" className="auth-page__input" placeholder="Пароль" onChange={handleChange} value={creds.password || ''} id="password-input" />
-                        <button className="auth-page__button" onSubmit={handleSubmit}>Зарегистрироваться</button>
+                        <button type="submit" className="auth-page__button">Зарегистрироваться</button>
                     </form>
                     <p className="auth-page__form-caption">Уже зарегистрированы? <Link className="auth-page__link" to="/sign-in">Войти</Link></p>
                 </div>
             </main>
+            <InfoTooltip isSuccess={isStatusSuccess} isOpen={props.isTooltipOpen} onClose={onTooltipClose}/>
         </>
     );
 }

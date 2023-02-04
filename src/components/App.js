@@ -2,7 +2,7 @@ import Header from "./Header";
 import Main from "./Main";
 import Footer from "./Footer";
 import { useState, useEffect } from "react";
-import { Route, Routes, Navigate } from "react-router-dom";
+import { Route, Routes, useNavigate } from "react-router-dom";
 import ImagePopup from "./ImagePopup";
 import api from "../utils/Api";
 import { CurrentUserContext } from "../contexts/CurrentUserContext";
@@ -12,6 +12,8 @@ import AddPlacePopup from "./AddPlacePopup";
 import DeletePlacePopup from "./DeletePlacePopup";
 import Login from "./Login";
 import Register from "./Register";
+import ProtectedRouteElement from "./ProtectedRoute";
+import { getContent } from "../utils/authApi";
 
 function App() {
     const [isEditAvatarPopupOpen, setEditAvatarPopupOpen] = useState(false);
@@ -22,7 +24,11 @@ function App() {
     const [currentUser, setCurrentUser] = useState('');
     const [cards, setCards] = useState([]);
     const [deletingCard, setDeletingCard] = useState('');
-    const [isLoggedIn, setLoggedIn] = useState(true);
+    const [isLoggedIn, setLoggedIn] = useState(false);
+    const [isTooltipOpen, setTooltipOpen] = useState(false);
+    const [email, setEmail] = useState();
+    const navigate = useNavigate();
+
 
     useEffect(() => {
         api.getUser()
@@ -36,8 +42,26 @@ function App() {
                 likes: item.likes,
                 owner: item.owner
             })));
-        })
-    }, []);
+        });
+        checkToken();
+    }, [isLoggedIn]);
+
+    function checkToken() {
+        if (localStorage.getItem('jwt')) {
+            const jwt = localStorage.getItem('jwt');
+            getContent(jwt).then((res) => {
+                if (res){
+                  setEmail(res.data.email);  
+                  setLoggedIn(true);
+                  navigate("/", {replace: true});
+                }
+              });
+        }
+    }
+
+    function handleTooltipOpen() {
+        setTooltipOpen(!isTooltipOpen);
+    }
 
     function handleEditAvatarClick() {
         setEditAvatarPopupOpen(!isEditAvatarPopupOpen);
@@ -106,11 +130,16 @@ function App() {
             .catch(err => console.log(`От сервера вернулась ошибка ${err}`));
     }
 
+    function handleUserLogIn() {
+        setLoggedIn(true);
+    }
+
     function closeAllPopups() {
         setEditAvatarPopupOpen(false);
         setEditProfilePopupOpen(false);
         setAddPlacePopupOpen(false);
         setDeletePlacePopupOpen(false);
+        setTooltipOpen(false);
         setSelectedCard({ isOpened: false });
     }
 
@@ -119,29 +148,30 @@ function App() {
             <div className="root">
                 <div className="page">
                     <Routes>
-                        <Route path="/sign-up" element={<Register />} />
-                        <Route path="/sign-in" element={<Login isLoggedIn={isLoggedIn} />} />
-                        <Route path="/" element={isLoggedIn ?
-                            <>
-                                <Header link="/sign-in" email="sfsdf" linkName="Выход" loggedIn={isLoggedIn} />
-                                <Main
-                                    cards={cards}
-                                    onEditAvatar={handleEditAvatarClick}
-                                    onEditProfile={handleEditProfileClick}
-                                    onAddPlace={handleAddPlaceClick}
-                                    onCardClick={handleCardClick}
-                                    onCardLike={handleCardLike}
-                                    onBasketClick={handleDeletePlaceClick}
-                                />
-                                <Footer />
-                                <EditProfilePopup isOpen={isEditProfilePopupOpen} onClose={closeAllPopups} onUpdateUser={handleUpdateUser} />
-                                <AddPlacePopup isOpen={isAddPlacePopupOpen} onClose={closeAllPopups} onAddPlace={handleAddPlaceSubmit} />
-                                <ImagePopup card={selectedCard} onClose={closeAllPopups} />
-                                <DeletePlacePopup isOpen={isDeletePlacePopupOpen} onClose={closeAllPopups} card={deletingCard} onCardDelete={handleCardDelete} />
-                                <EditAvatarPopup isOpen={isEditAvatarPopupOpen} onClose={closeAllPopups} onUpdateAvatar={handleUpdateAvatar} />
-                            </>
-                            : <Navigate to="/sign-in" replace />} />
-
+                        <Route path="/sign-up" element={<Register onLogIn={handleUserLogIn} onTooltipOpen={handleTooltipOpen} onTooltipClose={closeAllPopups} isTooltipOpen={isTooltipOpen} />} />
+                        <Route path="/sign-in" element={<Login onLogIn={handleUserLogIn} />} />
+                        <Route path="/" element={
+                            <ProtectedRouteElement loggedIn={isLoggedIn}>
+                                <>
+                                    <Header link="" email={email} linkName="Выход" loggedIn={isLoggedIn} />
+                                    <Main
+                                        cards={cards}
+                                        onEditAvatar={handleEditAvatarClick}
+                                        onEditProfile={handleEditProfileClick}
+                                        onAddPlace={handleAddPlaceClick}
+                                        onCardClick={handleCardClick}
+                                        onCardLike={handleCardLike}
+                                        onBasketClick={handleDeletePlaceClick}
+                                    />
+                                    <Footer />
+                                    <EditProfilePopup isOpen={isEditProfilePopupOpen} onClose={closeAllPopups} onUpdateUser={handleUpdateUser} />
+                                    <AddPlacePopup isOpen={isAddPlacePopupOpen} onClose={closeAllPopups} onAddPlace={handleAddPlaceSubmit} />
+                                    <ImagePopup card={selectedCard} onClose={closeAllPopups} />
+                                    <DeletePlacePopup isOpen={isDeletePlacePopupOpen} onClose={closeAllPopups} card={deletingCard} onCardDelete={handleCardDelete} />
+                                    <EditAvatarPopup isOpen={isEditAvatarPopupOpen} onClose={closeAllPopups} onUpdateAvatar={handleUpdateAvatar} />
+                                </>
+                            </ProtectedRouteElement>}
+                        />
                     </Routes>
                 </div>
             </div>

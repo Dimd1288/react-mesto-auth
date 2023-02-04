@@ -59,3 +59,4 @@
 @import url(./blocks/tooltip/__close-icon/tooltip__close-icon.css);
 @import url(./blocks/tooltip/__image/tooltip__image.css);
 @import url(./blocks/tooltip/__message/tooltip__message.css);
+@import url(./blocks/tooltip/_visible/tooltip_visible.css);
